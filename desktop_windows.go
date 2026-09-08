@@ -3,50 +3,16 @@
 package main
 
 import (
-	_ "embed"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"time"
-
-	"github.com/gogpu/systray"
 )
 
-//go:embed assets/tray-icon.png
-var trayIconPNG []byte
-
 func init() {
-	go startWindowsTray()
 	go openBrowserWhenReady()
-}
-
-func startWindowsTray() {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	tray := systray.New()
-	menu := systray.NewMenu()
-	menu.Add("Öppna Lokal fildelning", func() {
-		_ = openBrowser(localURL())
-	})
-	menu.AddSeparator()
-	menu.Add("Avsluta", func() {
-		tray.Remove()
-		os.Exit(0)
-	})
-
-	tray.SetIcon(trayIconPNG).
-		SetTooltip("Lokal fildelning").
-		SetMenu(menu)
-	tray.OnClick(func() {
-		_ = openBrowser(localURL())
-	})
-	tray.Show()
-
-	_ = tray.Run()
 }
 
 func openBrowserWhenReady() {
