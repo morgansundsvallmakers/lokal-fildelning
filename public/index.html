@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Dela tillfälliga filer med andra på det lokala nätverket." />
+    <title>Lokal fildelning</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <h1>Lokal fildelning</h1>
+          <p class="intro">Lämna här. Hämta där.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="button button-primary" id="open-upload" type="button">Ladda upp fil</button>
+          <button class="button button-secondary" id="open-phone" type="button">Visa QR-kod</button>
+        </div>
+      </header>
+
+      <section class="files-section" aria-label="Tillgängligt just nu">
+        <div class="section-heading">
+          <button class="refresh-button" id="refresh-files" type="button">Uppdatera</button>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+        <div class="file-list" id="file-list"></div>
+      </section>
+    </main>
+
+    <dialog id="upload-dialog" aria-labelledby="upload-title">
+      <form id="upload-form">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">NY FIL</p>
+            <h2 id="upload-title">Ladda upp fil</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog aria-label="Stäng">×</button>
+        </div>
+
+        <label class="field file-picker">
+          <span>Fil</span>
+          <input id="file-input" name="file" type="file" required />
+        </label>
+
+        <label class="field">
+          <span>Beskrivning <small>(frivillig)</small></span>
+          <textarea name="description" rows="3" maxlength="500" placeholder="Vad innehåller filen?"></textarea>
+        </label>
+
+        <label class="field lifetime-field">
+          <span>Livslängd</span>
+          <strong id="lifetime-label">8 timmar</strong>
+          <input id="lifetime" name="lifetimeMinutes" type="range" min="30" max="480" step="30" value="480" />
+          <span class="range-labels"><small>30 minuter</small><small>8 timmar</small></span>
+        </label>
+
+        <div class="dialog-actions">
+          <button class="button button-secondary" type="button" data-close-dialog>Avbryt</button>
+          <button class="button button-primary" id="submit-upload" type="submit">Ladda upp</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="phone-dialog" aria-labelledby="phone-title">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">SAMMA NÄTVERK</p>
+          <h2 id="phone-title">Öppna på telefon</h2>
+        </div>
+        <button class="icon-button" type="button" data-close-dialog aria-label="Stäng">×</button>
+      </div>
+      <div class="qr-panel" id="qr-panel">
+        <p>Läser in lokal adress …</p>
+      </div>
+      <div class="dialog-actions">
+        <button class="button button-primary" type="button" data-close-dialog>Klart</button>
+      </div>
+    </dialog>
+
+    <template id="file-template">
+      <article class="file-card">
+        <div class="file-main">
+          <div class="file-icon" aria-hidden="true"></div>
+          <div class="file-copy">
+            <h3 class="file-name"></h3>
+            <p class="file-description"></p>
+          </div>
+        </div>
+        <div class="file-facts">
+          <span class="file-size"></span>
+          <span class="file-expiry">Raderas om <strong class="file-remaining"></strong></span>
+        </div>
+        <div class="file-actions">
+          <a class="button button-secondary download-button">Hämta</a>
+          <button class="button button-danger delete-button" type="button">Radera</button>
+        </div>
+      </article>
+    </template>
+  </body>
+</html>
