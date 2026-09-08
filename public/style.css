@@ -46,10 +46,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   gap: 18px;
 }
 .hero-icon {
-  width: 52px;
-  height: 52px;
+  width: 72px;
+  height: 72px;
   flex: 0 0 auto;
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 .eyebrow {
@@ -253,7 +253,7 @@ input[type="range"] { width: 100%; accent-color: #356f4b; }
   .shell { width: min(100% - 20px, 620px); padding: 10px 0 40px; }
   .hero { align-items: stretch; flex-direction: column; padding: 25px 22px; }
   .hero-brand { align-items: flex-start; gap: 14px; }
-  .hero-icon { width: 44px; height: 44px; border-radius: 10px; }
+  .hero-icon { width: 64px; height: 64px; border-radius: 14px; }
   .hero-actions { display: grid; grid-template-columns: 1fr; }
   .file-list { grid-template-columns: 1fr; gap: 16px; }
   .file-card {
@@ -286,7 +286,7 @@ input[type="range"] { width: 100%; accent-color: #356f4b; }
   .shell { width: calc(100% - 16px); }
   .hero { padding: 23px 18px; }
   .hero-brand { gap: 12px; }
-  .hero-icon { width: 40px; height: 40px; border-radius: 9px; }
+  .hero-icon { width: 56px; height: 56px; border-radius: 12px; }
   .file-card { padding: 18px; }
   .file-facts { align-items: flex-start; flex-direction: column; gap: 5px; }
   dialog { padding: 21px; }
