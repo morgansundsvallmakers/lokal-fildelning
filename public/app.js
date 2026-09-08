@@ -9,6 +9,7 @@ const lifetime = document.querySelector('#lifetime');
 const lifetimeLabel = document.querySelector('#lifetime-label');
 const fileTemplate = document.querySelector('#file-template');
 const qrPanel = document.querySelector('#qr-panel');
+const shutdownServer = document.querySelector('#shutdown-server');
 
 let files = [];
 
@@ -128,6 +129,22 @@ async function showPhoneDialog() {
   }
 }
 
+async function stopServer() {
+  if (!window.confirm('Stäng Lokal fildelning på den här datorn?')) return;
+  shutdownServer.disabled = true;
+  shutdownServer.textContent = 'Stänger …';
+  try {
+    const response = await fetch('/api/shutdown', { method: 'POST' });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Servern kunde inte stängas.');
+    setStatus('Servern är stängd. Du kan stänga fliken.');
+  } catch (error) {
+    setStatus(error.message, true);
+    shutdownServer.disabled = false;
+    shutdownServer.textContent = 'Stäng servern';
+  }
+}
+
 lifetime.addEventListener('input', () => {
   lifetimeLabel.textContent = formatLifetime(Number(lifetime.value));
 });
@@ -161,6 +178,12 @@ document.querySelector('#open-upload').addEventListener('click', () => {
 });
 document.querySelector('#open-phone').addEventListener('click', showPhoneDialog);
 document.querySelector('#refresh-files').addEventListener('click', () => loadFiles());
+
+const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
+if (localHosts.has(window.location.hostname)) {
+  shutdownServer.hidden = false;
+  shutdownServer.addEventListener('click', stopServer);
+}
 
 document.querySelectorAll('[data-close-dialog]').forEach((button) => {
   button.addEventListener('click', () => button.closest('dialog').close());
