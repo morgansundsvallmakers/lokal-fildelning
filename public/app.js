@@ -1,5 +1,6 @@
 const fileList = document.querySelector('#file-list');
 const status = document.querySelector('#status');
+const uploadStatus = document.querySelector('#upload-status');
 const uploadDialog = document.querySelector('#upload-dialog');
 const phoneDialog = document.querySelector('#phone-dialog');
 const uploadForm = document.querySelector('#upload-form');
@@ -39,6 +40,11 @@ function formatRemaining(expiresAt) {
 function setStatus(message = '', isError = false) {
   status.textContent = message;
   status.classList.toggle('error', isError);
+}
+
+function setUploadStatus(message = '', isError = false) {
+  uploadStatus.textContent = message;
+  uploadStatus.classList.toggle('error', isError);
 }
 
 function configureDownloadAction(link, file) {
@@ -128,6 +134,7 @@ lifetime.addEventListener('input', () => {
 
 uploadForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  setUploadStatus('');
   submitUpload.disabled = true;
   submitUpload.textContent = 'Laddar upp …';
   try {
@@ -136,18 +143,22 @@ uploadForm.addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error(result.error || 'Filen kunde inte laddas upp.');
     uploadDialog.close();
     uploadForm.reset();
+    setUploadStatus('');
     lifetimeLabel.textContent = '8 timmar';
     await loadFiles({ quiet: true });
     setStatus(`”${result.originalName}” har laddats upp.`);
   } catch (error) {
-    setStatus(error.message, true);
+    setUploadStatus(error.message, true);
   } finally {
     submitUpload.disabled = false;
     submitUpload.textContent = 'Ladda upp';
   }
 });
 
-document.querySelector('#open-upload').addEventListener('click', () => uploadDialog.showModal());
+document.querySelector('#open-upload').addEventListener('click', () => {
+  setUploadStatus('');
+  uploadDialog.showModal();
+});
 document.querySelector('#open-phone').addEventListener('click', showPhoneDialog);
 document.querySelector('#refresh-files').addEventListener('click', () => loadFiles());
 
