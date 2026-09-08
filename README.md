@@ -14,12 +14,13 @@ Uppladdade filer och metadata lagras lokalt i `uploads/` och versionshanteras in
 
 Du behöver Go 1.27 eller senare.
 
-För Windows-versionen utan terminalfönster:
+För Windows-versionen utan terminalfönster och med programikonen inbakad i `.exe`-filen:
 
 ```cmd
-go mod tidy
-go build -ldflags="-H=windowsgui" -o lokal-fildelning.exe .
+build-windows.cmd
 ```
+
+Byggskriptet skapar först `resource.syso` från `assets\icon.ico` med `rsrc` och bygger därefter `lokal-fildelning.exe`. `resource.syso` är en genererad lokal byggfil och versionshanteras inte.
 
 För utveckling, med terminal och loggutskrifter:
 
@@ -53,6 +54,7 @@ Windows-brandväggen kan fråga om programmet ska få kommunicera på privata n�
 - max 2 GB total tillfällig lagring
 - listning, hämtning och manuell radering
 - QR-kod till aktuell LAN-adress
+- gemensam programikon i webbsida, favicon, tray och Windows-programfil
 - Windows tray-ikon och automatisk öppning i standardwebbläsaren
 - ingen inloggning och ingen databas
 
