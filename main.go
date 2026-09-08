@@ -58,6 +58,7 @@ type app struct {
 	uploadsDirectory string
 	port             int
 	uploadMutex      sync.Mutex
+	shutdown         func()
 }
 
 func main() {
@@ -93,6 +94,7 @@ func main() {
 	mux.HandleFunc("POST /api/files", application.handleUpload)
 	mux.HandleFunc("GET /api/files/{id}/download", application.handleDownload)
 	mux.HandleFunc("DELETE /api/files/{id}", application.handleDelete)
+	mux.HandleFunc("POST /api/shutdown", application.handleShutdown)
 	mux.Handle("/", http.FileServer(http.FS(frontend)))
 
 	server := &http.Server{
@@ -103,6 +105,7 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	application.shutdown = stop
 
 	go application.cleanupLoop(ctx)
 
@@ -151,6 +154,29 @@ func (a *app) handleInfo(w http.ResponseWriter, _ *http.Request) {
 		"qrCode":                 "data:image/png;base64," + base64.StdEncoding.EncodeToString(png),
 		"maximumLifetimeMinutes": maximumLifetimeMinutes,
 	})
+}
+
+func (a *app) handleShutdown(w http.ResponseWriter, r *http.Request) {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "Servern kan bara stängas från den här datorn."})
+		return
+	}
+	ip := net.ParseIP(host)
+	if ip == nil || !ip.IsLoopback() {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "Servern kan bara stängas från den här datorn."})
+		return
+	}
+	if a.shutdown == nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Servern kunde inte stängas."})
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, map[string]string{"message": "Servern stängs."})
+	go func() {
+		time.Sleep(150 * time.Millisecond)
+		a.shutdown()
+	}()
 }
 
 func (a *app) handleListFiles(w http.ResponseWriter, _ *http.Request) {
