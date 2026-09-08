@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 	"unicode/utf8"
@@ -29,9 +30,12 @@ import (
 )
 
 const (
-	defaultPort            = 3000
-	maximumLifetimeMinutes = 8 * 60
-	cleanupInterval        = 30 * time.Second
+	defaultPort              = 3000
+	maximumLifetimeMinutes   = 8 * 60
+	cleanupInterval          = 30 * time.Second
+	maximumFileSize          = 500 * 1024 * 1024
+	maximumTotalStorage      = 2 * 1024 * 1024 * 1024
+	maximumUploadRequestSize = maximumFileSize + 2*1024*1024
 )
 
 //go:embed public
@@ -53,6 +57,7 @@ type metadata struct {
 type app struct {
 	uploadsDirectory string
 	port             int
+	uploadMutex      sync.Mutex
 }
 
 func main() {
@@ -167,7 +172,13 @@ func (a *app) handleListFiles(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (a *app) handleUpload(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maximumUploadRequestSize)
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "Filen är för stor. Maximal filstorlek är 500 MB."})
+			return
+		}
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Uppladdningen kunde inte läsas."})
 		return
 	}
@@ -182,6 +193,11 @@ func (a *app) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	if header.Size > maximumFileSize {
+		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "Filen är för stor. Maximal filstorlek är 500 MB."})
+		return
+	}
+
 	requestedLifetime, err := strconv.ParseFloat(r.FormValue("lifetimeMinutes"), 64)
 	if err != nil || requestedLifetime <= 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Livslängden måste vara större än noll."})
@@ -189,6 +205,20 @@ func (a *app) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	if requestedLifetime > maximumLifetimeMinutes {
 		requestedLifetime = maximumLifetimeMinutes
+	}
+
+	a.uploadMutex.Lock()
+	defer a.uploadMutex.Unlock()
+
+	storageUsed, err := a.storageUsage()
+	if err != nil {
+		log.Printf("Kunde inte beräkna lagringsutrymme: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Något gick fel på servern."})
+		return
+	}
+	if storageUsed >= maximumTotalStorage || header.Size > maximumTotalStorage-storageUsed {
+		writeJSON(w, http.StatusInsufficientStorage, map[string]string{"error": "Det finns inte tillräckligt med ledigt utrymme. Radera någon fil och försök igen."})
+		return
 	}
 
 	id, err := randomUUID()
@@ -206,7 +236,7 @@ func (a *app) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	size, copyErr := io.Copy(stored, file)
+	size, copyErr := io.Copy(stored, io.LimitReader(file, maximumFileSize+1))
 	closeErr := stored.Close()
 	if copyErr != nil || closeErr != nil {
 		_ = os.Remove(storedPath)
@@ -216,6 +246,16 @@ func (a *app) handleUpload(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Kunde inte stänga uppladdad fil: %v", closeErr)
 		}
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Något gick fel på servern."})
+		return
+	}
+	if size > maximumFileSize {
+		_ = os.Remove(storedPath)
+		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "Filen är för stor. Maximal filstorlek är 500 MB."})
+		return
+	}
+	if storageUsed+size > maximumTotalStorage {
+		_ = os.Remove(storedPath)
+		writeJSON(w, http.StatusInsufficientStorage, map[string]string{"error": "Det finns inte tillräckligt med ledigt utrymme. Radera någon fil och försök igen."})
 		return
 	}
 
@@ -289,6 +329,25 @@ func (a *app) filePath(id string) string {
 
 func (a *app) metadataPath(id string) string {
 	return filepath.Join(a.uploadsDirectory, id+".json")
+}
+
+func (a *app) storageUsage() (int64, error) {
+	entries, err := os.ReadDir(a.uploadsDirectory)
+	if err != nil {
+		return 0, err
+	}
+	var total int64
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".file") {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return 0, err
+		}
+		total += info.Size()
+	}
+	return total, nil
 }
 
 func (a *app) writeMetadata(entry metadata) error {
