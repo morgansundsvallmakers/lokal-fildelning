@@ -6,34 +6,40 @@ Lokal fildelning är en enkel lokal filöverföringstjänst för hem och makersp
 
 Servern är skriven i Go. Frontenden ligger i `public/` i källkoden och bäddas in i den färdiga binären med Go `embed`, så den byggda `.exe`-filen kan köras utan en separat `public/`-mapp.
 
+På Windows används en system tray-ikon. När programmet startar öppnas `http://localhost:3000` automatiskt i standardwebbläsaren. Tray-ikonen kan användas för att öppna sidan igen eller avsluta programmet.
+
 Uppladdade filer och metadata lagras lokalt i `uploads/` och versionshanteras inte.
 
 ## Bygg
 
 Du behöver Go 1.27 eller senare.
 
+För Windows-versionen utan terminalfönster:
+
 ```cmd
 go mod tidy
-go build -o lokal-fildelning.exe .
+go build -ldflags="-H=windowsgui" -o lokal-fildelning.exe .
 ```
 
-## Starta
-
-För utveckling:
+För utveckling, med terminal och loggutskrifter:
 
 ```cmd
 go run .
 ```
 
-Eller kör den byggda filen:
+## Starta
+
+Kör:
 
 ```cmd
 lokal-fildelning.exe
 ```
 
+Standardwebbläsaren öppnas automatiskt. Programmet fortsätter att köra i system tray även om webbläsarfönstret stängs.
+
 Servern använder port 3000 som standard. Du kan välja en annan port med miljövariabeln `PORT`.
 
-Terminalen visar både adressen för den egna datorn och en lokal nätverksadress. Öppna `http://localhost:3000` på serverdatorn. Från en telefon eller annan dator på samma LAN öppnar du den utskrivna nätverksadressen eller använder QR-koden i webbgränssnittet.
+Från en telefon eller annan dator på samma LAN använder du QR-koden i webbgränssnittet eller datorns lokala nätverksadress.
 
 Windows-brandväggen kan fråga om programmet ska få kommunicera på privata nätverk. Tillåt detta för att andra enheter ska kunna ansluta.
 
@@ -43,8 +49,11 @@ Windows-brandväggen kan fråga om programmet ska få kommunicera på privata n�
 - valfri beskrivning
 - vald livslängd, högst 8 timmar
 - automatisk radering när livslängden gått ut
+- max 500 MB per fil
+- max 2 GB total tillfällig lagring
 - listning, hämtning och manuell radering
 - QR-kod till aktuell LAN-adress
+- Windows tray-ikon och automatisk öppning i standardwebbläsaren
 - ingen inloggning och ingen databas
 
 ## Viktigt att känna till
