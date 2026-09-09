@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	defaultPort              = 3000
 	maximumLifetimeMinutes   = 8 * 60
 	cleanupInterval          = 30 * time.Second
 	maximumFileSize          = 500 * 1024 * 1024
@@ -42,6 +41,7 @@ const (
 var publicFiles embed.FS
 
 var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+var browserPortReady = make(chan int, 1)
 
 type metadata struct {
 	ID           string `json:"id"`
@@ -62,14 +62,29 @@ type app struct {
 }
 
 func main() {
-	port := defaultPort
+	requestedPort := 0
 	if value := os.Getenv("PORT"); value != "" {
 		parsed, err := strconv.Atoi(value)
 		if err != nil || parsed <= 0 || parsed > 65535 {
 			log.Fatalf("Ogiltig PORT: %q", value)
 		}
-		port = parsed
+		requestedPort = parsed
 	}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", requestedPort))
+	if err != nil {
+		if requestedPort != 0 {
+			log.Fatalf("Kunde inte använda PORT %d: %v", requestedPort, err)
+		}
+		log.Fatalf("Kunde inte hitta en ledig port: %v", err)
+	}
+	defer listener.Close()
+
+	tcpAddress, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		log.Fatalf("Kunde inte läsa vald port från %s", listener.Addr())
+	}
+	port := tcpAddress.Port
 
 	application := &app{
 		uploadsDirectory: "uploads",
@@ -98,7 +113,6 @@ func main() {
 	mux.Handle("/", http.FileServer(http.FS(frontend)))
 
 	server := &http.Server{
-		Addr:              fmt.Sprintf("0.0.0.0:%d", port),
 		Handler:           recoverMiddleware(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
@@ -111,8 +125,11 @@ func main() {
 
 	lanAddress := getLANAddress()
 	log.Println("Lokal fildelning är igång:")
+	log.Printf("  Port: %d", port)
 	log.Printf("  Den här datorn: http://localhost:%d", port)
 	log.Printf("  Lokalt nätverk: http://%s:%d", lanAddress, port)
+
+	browserPortReady <- port
 
 	go func() {
 		<-ctx.Done()
@@ -123,7 +140,7 @@ func main() {
 		}
 	}()
 
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
 }
