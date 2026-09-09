@@ -5,18 +5,19 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
-	"strconv"
 	"time"
 )
 
 func init() {
-	go openBrowserWhenReady()
+	go func() {
+		port := <-browserPortReady
+		openBrowserWhenReady(port)
+	}()
 }
 
-func openBrowserWhenReady() {
-	url := localURL()
+func openBrowserWhenReady(port int) {
+	url := fmt.Sprintf("http://localhost:%d", port)
 	client := &http.Client{Timeout: 500 * time.Millisecond}
 	deadline := time.Now().Add(10 * time.Second)
 
@@ -31,16 +32,6 @@ func openBrowserWhenReady() {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-}
-
-func localURL() string {
-	port := defaultPort
-	if value := os.Getenv("PORT"); value != "" {
-		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 && parsed <= 65535 {
-			port = parsed
-		}
-	}
-	return fmt.Sprintf("http://localhost:%d", port)
 }
 
 func openBrowser(url string) error {
