@@ -6,7 +6,7 @@ Lokal fildelning är en enkel lokal filöverföringstjänst för hem och makersp
 
 Servern är skriven i Go. Frontenden ligger i `public/` i källkoden och bäddas in i den färdiga binären med Go `embed`, så den byggda `.exe`-filen kan köras utan en separat `public/`-mapp.
 
-På Windows används en system tray-ikon. När programmet startar öppnas `http://localhost:3000` automatiskt i standardwebbläsaren. Tray-ikonen kan användas för att öppna sidan igen eller avsluta programmet.
+På Windows öppnas `http://localhost:3000` automatiskt i standardwebbläsaren när programmet startar.
 
 Uppladdade filer och metadata lagras lokalt i `uploads/` och versionshanteras inte.
 
@@ -20,7 +20,7 @@ För Windows-versionen utan terminalfönster och med programikonen inbakad i `.e
 build-windows.cmd
 ```
 
-Byggskriptet skapar först `resource.syso` från `assets\icon.ico` med `rsrc` och bygger därefter `lokal-fildelning.exe`. `resource.syso` är en genererad lokal byggfil och versionshanteras inte.
+Byggskriptet skapar Windows-resursen från `assets\tray-icon.png` med `go-winres` och bygger därefter `lokal-fildelning.exe`. Den genererade resursfilen versionshanteras inte.
 
 För utveckling, med terminal och loggutskrifter:
 
@@ -36,7 +36,7 @@ Kör:
 lokal-fildelning.exe
 ```
 
-Standardwebbläsaren öppnas automatiskt. Programmet fortsätter att köra i system tray även om webbläsarfönstret stängs.
+Standardwebbläsaren öppnas automatiskt. Servern fortsätter att köra även om webbläsarfönstret stängs. För att avsluta programmet öppnar du sidan på den dator där servern körs och väljer **Stäng servern**.
 
 Servern använder port 3000 som standard. Du kan välja en annan port med miljövariabeln `PORT`.
 
@@ -54,8 +54,9 @@ Windows-brandväggen kan fråga om programmet ska få kommunicera på privata n�
 - max 2 GB total tillfällig lagring
 - listning, hämtning och manuell radering
 - QR-kod till aktuell LAN-adress
-- gemensam programikon i webbsida, favicon, tray och Windows-programfil
-- Windows tray-ikon och automatisk öppning i standardwebbläsaren
+- gemensam programikon i webbsida, favicon och Windows-programfil
+- automatisk öppning i standardwebbläsaren på Windows
+- säker avstängning från localhost
 - ingen inloggning och ingen databas
 
 ## Viktigt att känna till
